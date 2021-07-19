@@ -46,7 +46,7 @@ const V2_API_RPC_PATH: &str = "/rpc/soap-axis/confluenceservice-v2?wsdl";
 /// Client's session.
 pub struct Session {
     wsdl: wsdl::Wsdl,
-    client : reqwest::Client,
+    client : reqwest::blocking::Client,
     token: String,
 }
 
@@ -81,7 +81,7 @@ impl Session {
         let wsdl_url = [url, V2_API_RPC_PATH].concat();
 
         debug!("getting wsdl from url {:?}", wsdl_url);
-        let client = reqwest::Client::new();
+        let client = reqwest::blocking::Client::new();
 
         let wsdl = wsdl::fetch(&client, &wsdl_url)?;
         let mut session = Session {

@@ -14,7 +14,7 @@ pub struct Response {
 }
 
 /// Perform a GET request to specified URL.
-pub fn get(client : &reqwest::Client, url: &str) -> Result<Response> {
+pub fn get(client : &reqwest::blocking::Client, url: &str) -> Result<Response> {
     let mut res = client.get(url).send()?;
     let mut body = String::new();
     res.read_to_string(&mut body).unwrap();
@@ -24,7 +24,7 @@ pub fn get(client : &reqwest::Client, url: &str) -> Result<Response> {
 }
 
 /// Perform a SOAP action to specified URL.
-pub fn soap_action(client : &reqwest::Client, url: &str, action: &str, xml: &str) -> Result<Response> {
+pub fn soap_action(client : &reqwest::blocking::Client, url: &str, action: &str, xml: &str) -> Result<Response> {
     let soap_action = HeaderName::from_bytes(b"SOAPAction").unwrap();
     let soap_value = HeaderValue::from_str(action).unwrap();
     let mut hmap = HeaderMap::new();
