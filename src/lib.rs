@@ -18,6 +18,7 @@ extern crate chrono;
 extern crate reqwest;
 extern crate xml;
 extern crate xmltree;
+extern crate thiserror;
 
 pub mod http;
 pub mod rpser;
@@ -38,6 +39,7 @@ use self::http::HttpError;
 use self::rpser::xml::BuildElement;
 use self::rpser::{Method, RpcError};
 use xmltree::Element;
+use thiserror::Error as ThisError;
 
 const V2_API_RPC_PATH: &str = "/rpc/soap-axis/confluenceservice-v2?wsdl";
 
@@ -423,19 +425,18 @@ impl Session {
 }
 
 /// Confluence library error.
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
 pub enum Error {
+    #[error("MethodNotFoundInWsdl({0})")]
     MethodNotFoundInWsdl(String),
+    #[error("ReceivedNoLoginToken")]
     ReceivedNoLoginToken,
-    Io(IoError),
-    Http(HttpError),
+    #[error("IoError({0})")]
+    Io(#[from] IoError),
+    #[error("HttpError({0})")]
+    Http(#[from] HttpError),
+    #[error("RpcError({0:?})")]
     Rpc(Box<RpcError>),
-}
-
-impl From<HttpError> for Error {
-    fn from(other: HttpError) -> Error {
-        Error::Http(other)
-    }
 }
 
 impl From<RpcError> for Error {
@@ -447,12 +448,6 @@ impl From<RpcError> for Error {
 impl From<rpser::xml::Error> for Error {
     fn from(other: rpser::xml::Error) -> Error {
         RpcError::from(other).into()
-    }
-}
-
-impl From<IoError> for Error {
-    fn from(other: IoError) -> Error {
-        Error::Io(other)
     }
 }
 
