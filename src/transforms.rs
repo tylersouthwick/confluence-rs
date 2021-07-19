@@ -34,7 +34,13 @@ impl FromElement for Page {
             version: element.get_at_path(&["version"]).and_then(|e| e.as_int())?,
             content: element
                 .get_at_path(&["content"])
-                .and_then(|e| e.as_string())?,
+                .and_then(|e| {
+                    if e.text == None {
+                        Ok("".to_string())
+                    } else {
+                        e.as_string()
+                    }
+                })?,
             created: element
                 .get_at_path(&["created"])
                 .and_then(|e| e.as_datetime())?,
