@@ -74,6 +74,7 @@ impl FromElement for PageSummary {
             parent_id: element.get_at_path(&["parentId"]).and_then(|e| e.as_long())?,
             title: element.get_at_path(&["title"]).and_then(|e| e.as_string())?,
             url: element.get_at_path(&["url"]).and_then(|e| e.as_string())?,
+            version: element.get_at_path(&["version"]).and_then(|e| e.as_int())?,
         })
     }
 }

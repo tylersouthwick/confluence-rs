@@ -2,7 +2,7 @@ use chrono::offset::Utc;
 use chrono::DateTime;
 
 /// Page.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Page {
     /// The id of the page
     pub id: i64,
@@ -35,7 +35,7 @@ pub struct Page {
 }
 
 /// Page Summary.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PageSummary {
     /// The id of the page
     pub id: i64,
@@ -47,6 +47,8 @@ pub struct PageSummary {
     pub title: String,
     /// The url to view this page online
     pub url: String,
+    /// The version of the page
+    pub version: i32,
 }
 
 /// Page Object for creating a Page.
