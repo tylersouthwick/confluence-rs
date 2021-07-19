@@ -46,6 +46,7 @@ const V2_API_RPC_PATH: &str = "/rpc/soap-axis/confluenceservice-v2?wsdl";
 /// Client's session.
 pub struct Session {
     wsdl: wsdl::Wsdl,
+    client : reqwest::Client,
     token: String,
 }
 
@@ -80,9 +81,11 @@ impl Session {
         let wsdl_url = [url, V2_API_RPC_PATH].concat();
 
         debug!("getting wsdl from url {:?}", wsdl_url);
+        let client = reqwest::Client::new();
 
-        let wsdl = wsdl::fetch(&wsdl_url)?;
+        let wsdl = wsdl::fetch(&client, &wsdl_url)?;
         let mut session = Session {
+            client,
             wsdl,
             token: String::new(),
         };
@@ -416,7 +419,7 @@ impl Session {
             trace!("[method xml] {}", envelope);
         }
 
-        let http_response = http::soap_action(url, &method.name, &envelope)?;
+        let http_response = http::soap_action(&self.client, url, &method.name, &envelope)?;
 
         trace!("[response xml] {}", http_response.body);
 

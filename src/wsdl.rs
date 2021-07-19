@@ -17,8 +17,8 @@ pub struct Wsdl {
 }
 
 /// Fetch WSDL from specified URL and store results in `Wsdl` structure.
-pub fn fetch(url: &str) -> http::Result<Wsdl> {
-    let response = http::get(&url)?;
+pub fn fetch(client : &reqwest::Client, url: &str) -> http::Result<Wsdl> {
+    let response = http::get(client, &url)?;
     let mut bytes = response.body.as_bytes();
 
     let mut operations = HashMap::new();
