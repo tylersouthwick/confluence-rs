@@ -210,6 +210,26 @@ impl Session {
     }
 
     /**
+    Deletes a Page by id.
+
+    ## Example
+
+    ```no_run
+    # let session = confluence::Session::login("https://confluence", "user", "pass").unwrap();
+      session.delete_page_by_id(123456)?;
+    ```
+    */
+    pub fn delete_page_by_id(&self, page_id: i64) -> Result<()> {
+        self.call(
+            Method::new("removePage")
+                .with(Element::node("token").with_text(self.token.clone()))
+                .with(Element::node("pageId").with_text(page_id.to_string()))
+        )?;
+
+        Ok(())
+    }
+
+    /**
     Adds or updates a page.
 
     # For adding
