@@ -35,7 +35,7 @@ pub use transforms::FromElement;
 use std::io::Error as IoError;
 use std::result;
 
-use self::http::HttpError;
+use reqwest::Error as HttpError;
 use self::rpser::xml::BuildElement;
 use self::rpser::{Method, RpcError};
 use xmltree::Element;
@@ -431,6 +431,8 @@ pub enum Error {
     MethodNotFoundInWsdl(String),
     #[error("ReceivedNoLoginToken")]
     ReceivedNoLoginToken,
+    #[error("InvalidStatusCode({0})")]
+    InvalidStatusCode(http::StatusCode),
     #[error("IoError({0})")]
     Io(#[from] IoError),
     #[error("HttpError({0})")]

@@ -1,7 +1,7 @@
 //! HTTP helpers.
 
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE};
-pub use reqwest::Error as HttpError;
+use crate::Error as HttpError;
 pub use reqwest::StatusCode;
 use std::io::Read;
 use std::result;
@@ -38,6 +38,9 @@ pub fn soap_action(url: &str, action: &str, xml: &str) -> Result<Response> {
         .body(xml.to_string())
         .send()?;
 
+    if response.status() != 200 {
+        return Err(HttpError::InvalidStatusCode(response.status()));
+    }
     let mut body = String::new();
     response.read_to_string(&mut body).unwrap();
     let status = response.status();
