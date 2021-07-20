@@ -1,7 +1,7 @@
-use rpser::xml::BuildElement;
+use crate::rpser::xml::BuildElement;
 use xmltree::Element;
 
-use {Page, PageSummary, Result, Space};
+use crate::{Page, PageSummary, Result, Space};
 
 pub trait FromElement {
     fn from_element(element: Element) -> Result<Self>

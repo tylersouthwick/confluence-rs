@@ -40,21 +40,24 @@ use self::rpser::xml::BuildElement;
 use self::rpser::{Method, RpcError};
 use xmltree::Element;
 use thiserror::Error as ThisError;
+use reqwest::Client;
 
 const V2_API_RPC_PATH: &str = "/rpc/soap-axis/confluenceservice-v2?wsdl";
 
 /// Client's session.
 pub struct Session {
     wsdl: wsdl::Wsdl,
-    client : reqwest::blocking::Client,
+    client : Client,
     token: String,
 }
 
+/*
 impl Drop for Session {
     fn drop(&mut self) {
         self.logout().unwrap();
     }
 }
+*/
 
 impl Session {
     /**
@@ -70,7 +73,7 @@ impl Session {
     ).unwrap();
     ```
     */
-    pub fn login(url: &str, user: &str, pass: &str) -> Result<Session> {
+    pub async fn login(url: &str, user: &str, pass: &str) -> Result<Session> {
         debug!("logging in at url {:?} with user {:?}", url, user);
 
         let url = if url.ends_with('/') {
@@ -81,9 +84,9 @@ impl Session {
         let wsdl_url = [url, V2_API_RPC_PATH].concat();
 
         debug!("getting wsdl from url {:?}", wsdl_url);
-        let client = reqwest::blocking::Client::new();
+        let client = Client::new();
 
-        let wsdl = wsdl::fetch(&client, &wsdl_url)?;
+        let wsdl = wsdl::fetch(&client, &wsdl_url).await?;
         let mut session = Session {
             client,
             wsdl,
@@ -94,7 +97,7 @@ impl Session {
             Method::new("login")
                 .with(Element::node("username").with_text(user))
                 .with(Element::node("password").with_text(pass))
-        )?;
+        ).await?;
 
         let token = match response.body.descend(&["loginReturn"])?.text {
             Some(token) => token,
@@ -109,10 +112,10 @@ impl Session {
     /// Explicitly log out out of confluence.
     ///
     /// This is done automatically at the end of Session's lifetime.
-    pub fn logout(&self) -> Result<bool> {
+    pub async fn logout(&self) -> Result<bool> {
         let response = self.call(
             Method::new("logout").with(Element::node("token").with_text(self.token.clone()))
-        )?;
+        ).await?;
 
         Ok(match response.body.descend(&["logoutReturn"])?.text {
             Some(ref v) if v == "true" => {
@@ -144,12 +147,12 @@ impl Session {
     );
     ```
     */
-    pub fn get_space(&self, space_key: &str) -> Result<Space> {
+    pub async fn get_space(&self, space_key: &str) -> Result<Space> {
         let response = self.call(
             Method::new("getSpace")
                 .with(Element::node("token").with_text(self.token.clone()))
                 .with(Element::node("spaceKey").with_text(space_key))
-        )?;
+        ).await?;
 
         let element = response.body.descend(&["getSpaceReturn"])?;
 
@@ -170,13 +173,13 @@ impl Session {
     );
     ```
     */
-    pub fn get_page_by_title(&self, space_key: &str, page_title: &str) -> Result<Page> {
+    pub async fn get_page_by_title(&self, space_key: &str, page_title: &str) -> Result<Page> {
         let response = self.call(
             Method::new("getPage")
                 .with(Element::node("token").with_text(self.token.clone()))
                 .with(Element::node("spaceKey").with_text(space_key))
                 .with(Element::node("pageTitle").with_text(page_title))
-        )?;
+        ).await?;
 
         let element = response.body.descend(&["getPageReturn"])?;
 
@@ -197,12 +200,12 @@ impl Session {
     );
     ```
     */
-    pub fn get_page_by_id(&self, page_id: i64) -> Result<Page> {
+    pub async fn get_page_by_id(&self, page_id: i64) -> Result<Page> {
         let response = self.call(
             Method::new("getPage")
                 .with(Element::node("token").with_text(self.token.clone()))
                 .with(Element::node("pageId").with_text(page_id.to_string()))
-        )?;
+        ).await?;
 
         let element = response.body.descend(&["getPageReturn"])?;
 
@@ -219,12 +222,12 @@ impl Session {
       session.delete_page_by_id(123456)?;
     ```
     */
-    pub fn delete_page_by_id(&self, page_id: i64) -> Result<()> {
+    pub async fn delete_page_by_id(&self, page_id: i64) -> Result<()> {
         self.call(
             Method::new("removePage")
                 .with(Element::node("token").with_text(self.token.clone()))
                 .with(Element::node("pageId").with_text(page_id.to_string()))
-        )?;
+        ).await?;
 
         Ok(())
     }
@@ -291,7 +294,7 @@ impl Session {
     session.store_page(page.into());
     ```
     */
-    pub fn store_page(&self, page: UpdatePage) -> Result<Page> {
+    pub async fn store_page(&self, page: UpdatePage) -> Result<Page> {
         let mut element_items = vec![
             Element::node("space").with_text(page.space),
             Element::node("title").with_text(page.title),
@@ -314,7 +317,7 @@ impl Session {
             Method::new("storePage")
                 .with(Element::node("token").with_text(self.token.clone()))
                 .with(Element::node("page").with_children(element_items))
-        )?;
+        ).await?;
 
         let element = response.body.descend(&["storePageReturn"])?;
 
@@ -326,7 +329,7 @@ impl Session {
 
     Same as `store_page`, but with additional update options parameter.
     */
-    pub fn update_page(&self, page: UpdatePage, options: PageUpdateOptions) -> Result<Page> {
+    pub async fn update_page(&self, page: UpdatePage, options: PageUpdateOptions) -> Result<Page> {
         let mut element_items = vec![
             Element::node("space").with_text(page.space),
             Element::node("title").with_text(page.title),
@@ -362,7 +365,7 @@ impl Session {
                 .with(Element::node("token").with_text(self.token.clone()))
                 .with(Element::node("page").with_children(element_items))
                 .with(Element::node("pageUpdateOptions").with_children(update_options))
-        )?;
+        ).await?;
 
         let element = response.body.descend(&["updatePageReturn"])?;
 
@@ -383,12 +386,12 @@ impl Session {
     );
     ```
     */
-    pub fn get_children(&self, page_id: i64) -> Result<Vec<PageSummary>> {
+    pub async fn get_children(&self, page_id: i64) -> Result<Vec<PageSummary>> {
         let response = self.call(
             Method::new("getChildren")
                 .with(Element::node("token").with_text(self.token.clone()))
                 .with(Element::node("pageId").with_text(page_id.to_string()))
-        )?;
+        ).await?;
 
         let element = response.body.descend(&["getChildrenReturn"])?;
 
@@ -419,7 +422,7 @@ impl Session {
     /// If you need an example, look at how these convenience methods are implemented.
     ///
     /// Pull requests are welcome!
-    pub fn call(&self, method: rpser::Method) -> Result<rpser::Response> {
+    pub async fn call(&self, method: rpser::Method) -> Result<rpser::Response> {
         let url = match self.wsdl.operations.get(&method.name) {
             None => return Err(Error::MethodNotFoundInWsdl(method.name)),
             Some(ref op) => &op.url,
@@ -439,7 +442,7 @@ impl Session {
             trace!("[method xml] {}", envelope);
         }
 
-        let http_response = http::soap_action(&self.client, url, &method.name, &envelope)?;
+        let http_response = http::soap_action(&self.client, url, &method.name, &envelope).await?;
 
         trace!("[response xml] {}", http_response.body);
 

@@ -3,8 +3,8 @@
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE};
 use crate::Error as HttpError;
 pub use reqwest::StatusCode;
-use std::io::Read;
 use std::result;
+use reqwest::Client;
 
 /// Simplified HTTP response representation.
 #[derive(Debug)]
@@ -14,35 +14,34 @@ pub struct Response {
 }
 
 /// Perform a GET request to specified URL.
-pub fn get(client : &reqwest::blocking::Client, url: &str) -> Result<Response> {
-    let mut res = client.get(url).send()?;
-    let mut body = String::new();
-    res.read_to_string(&mut body).unwrap();
+pub async fn get(client : &Client, url: &str) -> Result<Response> {
+    let res = client.get(url).send().await?;
     let status = res.status();
+    let body = res.text().await?;
 
     Ok(Response { status, body })
 }
 
 /// Perform a SOAP action to specified URL.
-pub fn soap_action(client : &reqwest::blocking::Client, url: &str, action: &str, xml: &str) -> Result<Response> {
+pub async fn soap_action(client : &Client, url: &str, action: &str, xml: &str) -> Result<Response> {
     let soap_action = HeaderName::from_bytes(b"SOAPAction").unwrap();
     let soap_value = HeaderValue::from_str(action).unwrap();
     let mut hmap = HeaderMap::new();
     hmap.insert(CONTENT_TYPE, "text/xml; charset=utf-8".parse().unwrap());
     hmap.insert(soap_action, soap_value);
 
-    let mut response = client
+    let response = client
         .post(url)
         .headers(hmap)
         .body(xml.to_string())
-        .send()?;
+        .send()
+        .await?;
 
     if response.status() != 200 {
         return Err(HttpError::InvalidStatusCode(response.status()));
     }
-    let mut body = String::new();
-    response.read_to_string(&mut body).unwrap();
     let status = response.status();
+    let body = response.text().await?;
 
     Ok(Response { status, body })
 }
